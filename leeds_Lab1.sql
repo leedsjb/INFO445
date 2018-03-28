@@ -80,6 +80,48 @@ GO
 
 -- TRANSACTIONAL TABLE AND STORED PROCEDURES --
 
+-- Doctor Lookup Stored Procedure
+
+-- check if uspGetDoctorID stored procedure already exists and if so drop it
+IF(OBJECT_ID('uspGetDoctorID')) IS NOT NULL
+    DROP PROCEDURE uspGetDoctorID;
+GO
+
+CREATE PROCEDURE uspGetDoctorID
+    (
+        @DoctorFirstName varchar(50),
+        @DoctorLastName varchar(50)
+    )
+
+AS
+
+SELECT DoctorID
+FROM tblDOCTORS
+WHERE DoctorFName = @DoctorFirstName AND DoctorLName = @DoctorLastName;
+
+GO
+
+-- Patient Lookup Stored Procedure
+
+IF(OBJECT_ID('uspGetPatientID')) IS NOT NULL
+    DROP PROCEDURE uspGetPatientID;
+GO
+
+CREATE PROCEDURE uspGetPatientID
+    (
+        @PatientFirstName varchar(50),
+        @PatientLastName varchar(50),
+        @PatientDateOfBirth date
+    )
+AS
+
+SELECT PatientID
+FROM tblPATIENTS
+WHERE PatientFName = @PatientFirstName 
+    AND PatientLName = @PatientLastName AND PatientDOB = @PatientDateOfBirth;
+
+GO
+
 -- -- Create a new table called 'tblVISITS' in schema 'dbo'
 -- -- Drop the table if it already exists
 -- IF OBJECT_ID('dbo.tblVISITS', 'U') IS NOT NULL
