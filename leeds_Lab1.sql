@@ -2,7 +2,8 @@
 Lab 1
 INFO 445
 J. Benjamin Leeds
-March 28, 2018
+Created: March 27, 2018
+Updated: March 28, 2018
 */
 
 PRINT 'Executing Script'
@@ -30,14 +31,17 @@ GO
 CREATE TABLE tblDOCTORS
 (
     DoctorID int IDENTITY(1,1) PRIMARY KEY NOT NULL,
-    DoctorName varchar(50) not null
+    DoctorFName varchar(50) not null,
+    DoctorLName varchar(50) not null
 );
 GO
 
 -- new batch --
 BEGIN TRAN G1
-INSERT INTO tblDoctors(DoctorName)
-VALUES ('Dr. Benjamin'), ('Dr. Greg'), ('Dr. Julian'), ('Dr. Sabrina'), ('Dr. Caitlin')
+INSERT INTO tblDoctors(DoctorFName,DoctorLName)
+VALUES 
+    ('Benjamin','Leeds'), ('Greg','Hay'), ('Julian','Bossiere'),
+    ('Sabrina','Niklaus'), ('Caitlin','Schaeffer')
 
 IF @@ERROR <> 0
     ROLLBACK TRAN G1
@@ -57,15 +61,38 @@ GO
 CREATE TABLE tblPATIENTS
 (
     PatientID int IDENTITY(1,1) PRIMARY KEY NOT NULL, -- primary key column
-    PatientName varchar(50) NOT NULL
+    PatientFName varchar(50) NOT NULL,
+    PatientLName varchar(50) NOT NULL,
+    PatientDOB date NOT NULL
 );
 GO
 
 BEGIN TRAN G2
-INSERT INTO tblPATIENTS (PatientName)
-VALUES ('Jessica'), ('Anushree'), ('Lee'), ('Joe'), ('Royce')
+INSERT INTO tblPATIENTS (PatientFName, PatientLName, PatientDOB)
+VALUES 
+    ('Jessica','Libman','2007-05-08'), ('Anushree','Shukla','2007-05-09'),
+    ('Lee','Segal','2001-05-08'), ('Joe','Pollock','1995-05-08'), ('Royce','Le','2001-01-10')
 IF @@ERROR <> 0
     ROLLBACK TRAN G2
 ELSE
     COMMIT TRAN
 GO
+
+-- TRANSACTIONAL TABLE AND STORED PROCEDURES --
+
+-- -- Create a new table called 'tblVISITS' in schema 'dbo'
+-- -- Drop the table if it already exists
+-- IF OBJECT_ID('dbo.tblVISITS', 'U') IS NOT NULL
+-- DROP TABLE dbo.tblVISITS
+-- GO
+-- -- Create the table in the specified schema
+-- CREATE TABLE tblVISITS
+-- (
+--     VisitId INT IDENTITY(1,1) PRIMARY KEY NOT NULL, -- primary key column
+--     VisitDate DATETIMEOFFSET NOT NULL,
+--     DoctorID INT FOREIGN KEY REFERENCES tblDOCTORS(DoctorID),
+--     PatientID INT FOREIGN KEY REFERENCES tblPATIENTS(PatientID)
+-- );
+-- GO
+
+-- BEGIN TRAN G3 
