@@ -42,32 +42,32 @@ GO
 
 CREATE TABLE tblPET_TYPE(
     PetTypeID INT IDENTITY(1,1) PRIMARY KEY,
-    PetTypeName varchar(50)
+    PetTypeName NVARCHAR(50)
 )
 
 CREATE TABLE tblCOUNTRY(
     CountryID INT IDENTITY(1,1) PRIMARY KEY,
-    CountryName varchar(50)
+    CountryName NVARCHAR(50)
 )
 
 CREATE TABLE tblTEMPERAMENT(
     TempID INT IDENTITY(1,1) PRIMARY KEY,
-    TempName varchar(30)
+    TempName NVARCHAR(50)
 )
 
 CREATE TABLE tblGENDER(
     GenderID INT IDENTITY(1,1) PRIMARY KEY,
-    GenderName varchar(20)
+    GenderName NVARCHAR(50)
 )
 
 CREATE TABLE tblPET(
-    PetID int IDENTITY(1,1) PRIMARY KEY,
-    PetName varchar(30),
-    PetTypeID INT FOREIGN KEY REFERENCES tblPET_TYPE,
-    CountryID INT FOREIGN KEY REFERENCES tblCOUNTRY,
-    TempID INT FOREIGN KEY REFERENCES tblTEMPERAMENT,
+    PetID int IDENTITY(1,1) PRIMARY KEY NOT NULL,
+    PetName NVARCHAR(50) NOT NULL,
+    PetTypeID INT FOREIGN KEY REFERENCES tblPET_TYPE NOT NULL,
+    CountryID INT FOREIGN KEY REFERENCES tblCOUNTRY NOT NULL,
+    TempID INT FOREIGN KEY REFERENCES tblTEMPERAMENT NOT NULL,
     DOB date NOT NULL,
-    GenderID INT FOREIGN KEY REFERENCES tblGENDER
+    GenderID INT FOREIGN KEY REFERENCES tblGENDER NOT NULL
 )
 
 -- At this point delete any entries that have NULL values for ANY attribute (per Brendan Carlquist)
@@ -86,12 +86,6 @@ OR GENDER IS NULL
 --      PET_TYPE, TEMPERAMENT, COUNTRY, GENDER
 -- Do this because these tables can only have unique "categorical" values in them that the
 -- primary tblPET table will reference via FK relationships
-
-SELECT COUNT(PETNAME) FROM RAW_PetData
-SELECT * FROM tblPET_TYPE
-SELECT * FROM tblTEMPERAMENT
-SELECT * FROM tblCOUNTRY
-SELECT * FROM tblGENDER
 
 INSERT INTO tblPET_TYPE(PetTypeName)
 SELECT DISTINCT(PET_TYPE) FROM RAW_PetData WHERE PET_TYPE IS NOT NULL
@@ -114,12 +108,12 @@ DROP TABLE RAW_PetData_PK
 -- Create table with addition of Primary Key attribute
 CREATE TABLE dbo.RAW_PetData_PK(
     PK_ID INT IDENTITY(1,1) PRIMARY KEY,
-    PETNAME nvarchar(255),
-    PET_TYPE nvarchar(255),
-    TEMPERAMENT nvarchar(255),
-    COUNTRY nvarchar(255),
+    PETNAME NVARCHAR(50),
+    PET_TYPE NVARCHAR(50),
+    TEMPERAMENT NVARCHAR(50),
+    COUNTRY NVARCHAR(50),
     DATE_BIRTH DATE,
-    GENDER nvarchar(255),
+    GENDER NVARCHAR(50),
 )
 
 -- Copy Data from RAW_PetData to RAW_PetData_PK
@@ -131,12 +125,159 @@ FROM RAW_PetData
 
 -- Step 12: Create GetID Stored Procedures for each lookup table. Calling the stored procedure with
 --          a lookup table value will return the ID (primary key) for that value in the lookup table
- 
 
+IF(OBJECT_ID('uspGetPetTypeID')) IS NOT NULL
+    DROP PROCEDURE uspGetPetTypeID;
+GO
 
+CREATE PROCEDURE uspGetPetTypeID
+    (
+        @PTN NVARCHAR(50),
+        @PTN_outputParameter INT OUTPUT
+    )
+AS
+BEGIN
+    SET @PTN_outputParameter = (
+        SELECT PetTypeID FROM tblPET_TYPE WHERE PetTypeName = @PTN
+    )
+    
+END
+GO
 
+IF(OBJECT_ID('uspGetPetCountryID')) IS NOT NULL
+    DROP PROCEDURE uspGetPetCountryID;
+GO
 
--- View all tables
-SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'
- 
+CREATE PROCEDURE uspGetPetCountryID
+    (
+        @PCN NVARCHAR(50),
+        @PCN_outputParameter INT OUTPUT
+    )
+AS
+BEGIN
 
+    -- PRINT 'country name input:'
+    -- PRINT @PCN
+    SET @PCN_outputParameter = (
+        SELECT CountryID FROM tblCOUNTRY WHERE CountryName = @PCN
+    )
+
+END
+GO
+
+IF(OBJECT_ID('uspGetPetTempID')) IS NOT NULL
+    DROP PROCEDURE uspGetPetTempID;
+GO
+
+CREATE PROCEDURE uspGetPetTempID
+    (
+        @PTempN NVARCHAR(50),
+        @PTempN_outputParameter INT OUTPUT
+    )
+AS
+BEGIN
+    SET @PTempN_outputParameter = (
+        SELECT TempID FROM tblTEMPERAMENT WHERE TempName=@PTempN
+    )
+END
+GO
+
+IF(OBJECT_ID('uspGetPetGenderID')) IS NOT NULL
+    DROP PROCEDURE uspGetPetGenderID;
+GO
+
+CREATE PROCEDURE uspGetPetGenderID
+    (
+        @PGN NVARCHAR(50),
+        @PGN_outputParameter INT OUTPUT
+    )
+AS
+BEGIN
+    SET @PGN_outputParameter = (
+        SELECT GenderID FROM tblGENDER WHERE GenderName = @PGN
+    )
+END
+GO
+
+-- Create populate table nested stored procedure
+
+IF(OBJECT_ID('uspPopulatePetTable')) IS NOT NULL
+    DROP PROCEDURE uspPopulatePetTable;
+GO
+
+CREATE PROCEDURE uspPopulatePetTable
+    (
+        @PET_NAME NVARCHAR(50),
+        @PET_TYPE NVARCHAR(50),
+        @TEMPERAMENT NVARCHAR(50),
+        @COUNTRY NVARCHAR(50),
+        @PET_DOB DATE,
+        @GENDER NVARCHAR(50)
+    )
+AS
+BEGIN
+
+    DECLARE @petTypeID INT
+    DECLARE @petCountryID INT
+    DECLARE @petTemperamentID INT
+    DECLARE @petGenderID INT
+    
+     -- retrieve PetTypeID from lookup table and store in local variable
+    EXECUTE uspGetPetTypeID
+    @PTN = @PET_TYPE,
+    @PTN_outputParameter = @petTypeID OUTPUT
+           
+    EXECUTE uspGetPetCountryID
+    @PCN = @COUNTRY,
+    @PCN_outputParameter = @petCountryID OUTPUT
+
+    EXECUTE uspGetPetTempID
+    @PTempN = @TEMPERAMENT,
+    @PTempN_outputParameter = @petTemperamentID OUTPUT
+
+    EXECUTE uspGetPetGenderID
+    @PGN = @GENDER,
+    @PGN_outputParameter = @petGenderID OUTPUT
+
+    -- insert values retrieved from lookup tables using nested stored procedures into database
+    INSERT INTO dbo.tblPET(PetName, PetTypeID, CountryID, TempID, DOB, GenderID)
+    VALUES (@PET_NAME, @petTypeID, @petCountryID, @petTemperamentID, @PET_DOB, @petGenderID)
+
+END
+GO
+
+-- Count how many rows of data will be processed in loop
+DECLARE @NUM_ROWS INT
+SET @NUM_ROWS = (SELECT COUNT(PK_ID) FROM RAW_PetData_PK)
+
+DECLARE @CURSOR INT
+SET @CURSOR = 1 -- points to first row in RAW table w/ ID = 1
+
+-- WHILE loop iterates through rows in RAW table and calls nested stored procedure for each row
+
+WHILE @CURSOR < @NUM_ROWS + 1
+BEGIN
+
+    DECLARE @petName NVARCHAR(50)
+    DECLARE @petTypeName NVARCHAR(50)
+    DECLARE @petCountry NVARCHAR(50)
+    DECLARE @petTemperament NVARCHAR(50)
+    DECLARE @petDOB DATE
+    DECLARE @petGender NVARCHAR(50)
+
+    SELECT @petName = PETNAME, @petTypeName = PET_TYPE, @petTemperament = TEMPERAMENT,
+    @petCountry = COUNTRY, @petDOB = DATE_BIRTH, @petGender = GENDER
+    FROM RAW_PetData_PK WHERE PK_ID = @CURSOR
+  
+    EXECUTE uspPopulatePetTable
+    @PET_NAME = @petName,
+    @PET_TYPE = @petTypeName,
+    @TEMPERAMENT = @petTemperament,
+    @COUNTRY = @petCountry,
+    @PET_DOB = @petDOB,
+    @GENDER = @petGender
+
+    DELETE FROM RAW_PetData_PK WHERE PK_ID = @CURSOR
+
+    SET @CURSOR = @CURSOR + 1
+END
