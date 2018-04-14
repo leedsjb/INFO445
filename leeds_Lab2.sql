@@ -1,60 +1,68 @@
 /*
-Lab Assignment 2
-Created: Wednesday April 11, 2018
-Modified:
-Author: J. Benjamin Leeds
+Lab 2
+INFO 445
+J. Benjamin Leeds
+Created: April 13, 2018
+Updated:
 
 */
 
-CREATE DATABASE TUG
-USE TUG
+IF NOT EXISTS(
+    SELECT name
+    FROM sys.databases
+    WHERE name = N'leeds_Lab2'
+)
+CREATE DATABASE leeds_Lab2
 GO
 
-CREATE TABLE tblSTUDENT_TYPE(
-    StudentTypeID INT IDENTITY(1,1) PRIMARY KEY,
-    StudentTypeName varchar(50) NOT NULL,
-    StudentTypeDescr varchar(200) NULL
-)
+USE leeds_Lab2
 GO
 
-CREATE TABLE tblSTUDENT(
-    StudentID INT IDENTITY(1,1) PRIMARY KEY,
-    StudentName varchar(50) NOT NULL,
-    StudentTypeID INT FOREIGN KEY REFERENCES tblSTUDENT_TYPE(StudentTypeID) NOT NULL,
-    StudentDOB date NOT NULL
-)
+-- check if tables exist, if so drop them so they can be recreated empty
+
+IF OBJECT_ID('dbo.tblPET', 'U') IS NOT NULL
+DROP TABLE dbo.tblPET
+
+IF OBJECT_ID('dbo.tblPET_TYPE', 'U') IS NOT NULL
+DROP TABLE dbo.tblPET_TYPE
+
+IF OBJECT_ID('dbo.tblCOUNTRY', 'U') IS NOT NULL
+DROP TABLE dbo.tblCOUNTRY
+
+IF OBJECT_ID('dbo.tblTEMPERAMENT', 'U') IS NOT NULL
+DROP TABLE dbo.tblTEMPERAMENT
+
+IF OBJECT_ID('dbo.tblGENDER', 'U') IS NOT NULL
+DROP TABLE dbo.tblGENDER
+
 GO
 
-CREATE TABLE tblSKILL_TYPE(
-    SkillTypeID INT IDENTITY(1,1) PRIMARY KEY NOT NULL,
-    SkillTypeName varchar(50) NOT NULL,
-    SkillTypeDescr varchar(200)
-
+CREATE TABLE tblPET_TYPE(
+    PetTypeID INT IDENTITY(1,1) PRIMARY KEY,
+    PetTypeName varchar(50)
 )
 
-CREATE TABLE tblSKILL(
-    SkillID INT IDENTITY(1,1) PRIMARY KEY,
-    SkillName varchar(50) NOT NULL, 
-)
-GO
-
-CREATE TABLE tblLEVEL(
-    LevelID INT IDENTITY(1,1) PRIMARY KEY,
-    LevelName varchar(40) NOT NULL,
-    SkillTypeID FOREIGN KEY REFERENCES tblSKILL_TYPE (SkillTypeID) NOT NULL
-)
-GO
-
-CREATE TABLE tblSTUDENT_SKILL_LEVEL(
-    StudentSkillLevelID int IDENTITY(1,1) PRIMARY KEY,
-    StudentID FOREIGN KEY REFERENCES tblSTUDENT(StudentID) NOT NULL,
-    SkillID FOREIGN KEY REFERENCES tblSKILL(SkillID) NOT NULL,
-    LevelID FOREIGN KEY REFERENCES tblLevel(LevelID) NOT NULL
+CREATE TABLE tblCOUNTRY(
+    CountryID INT IDENTITY(1,1) PRIMARY KEY,
+    CountryName varchar(50)
 )
 
--- insert data into tables
--- INSERT INTO tblLEVEL(LevelName)
--- SELECT DISTINCT([Level]) FROM YellowLab
+CREATE TABLE tblTEMPERAMENT(
+    TempID INT IDENTITY(1,1) PRIMARY KEY,
+    TempName varchar(30)
+)
 
--- INSERT INTO tblSKILL(SkillTypeName)
--- SELECT DISTINCT(SkillType) FROM YellowLab
+CREATE TABLE tblGENDER(
+    GenderID INT IDENTITY(1,1) PRIMARY KEY,
+    GenderName varchar(20)
+)
+
+CREATE TABLE tblPET(
+    PetID int IDENTITY(1,1) PRIMARY KEY,
+    PetName varchar(30),
+    PetTypeID INT FOREIGN KEY REFERENCES tblPET_TYPE,
+    CountryID INT FOREIGN KEY REFERENCES tblCOUNTRY,
+    TempID INT FOREIGN KEY REFERENCES tblTEMPERAMENT,
+    DOB date NOT NULL,
+    GenderID INT FOREIGN KEY REFERENCES tblGENDER
+)
