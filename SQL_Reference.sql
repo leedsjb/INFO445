@@ -17,5 +17,10 @@ SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'
 USE leeds_Lab2
 SELECT * FROM sys.procedures
 
+-- List column names and types of all table starting with 'tbl'
+SELECT COLUMN_NAME, TABLE_NAME, DATA_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME LIKE 'tbl%'
+
 -- Display TOP N results from query
 SELECT TOP([N]) * FROM [dbo.tblName]
