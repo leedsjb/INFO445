@@ -6,15 +6,22 @@ Created: April 25, 2018
 Updated: April 26, 2018
 */
 
+USE master
+GO
+
+RESTORE FILELISTONLY
+FROM DISK = 'C:\SQL\Lab3_445_Template.bak'
+
 -- Restore full database
 RESTORE DATABASE Lab3_445_leeds -- database name
 FROM DISK = 'C:\SQL\Lab3_445_Template.bak' -- backup location
 WITH 
     MOVE 'Lab3_445' -- move data file to specified dir
-    TO 'C:\SQL\Lab3_445_yourNetID.mdf',
+    TO 'C:\SQL\Lab3_445_leeds.mdf',
     MOVE 'Lab3_445_log' -- move log file to specified dir
     TO 'C:\SQL\Lab3_445_leeds.ldf',
-RECOVERY, STATS
+
+RECOVERY, REPLACE, STATS
 GO
 -- STATS: provides incremental update
 
@@ -151,7 +158,7 @@ TO DISK = 'C:\SQL\Lab3_445_leeds.bak'
 -- Nested stored proc tests
 SELECT TOP 10 * FROM tblCUSTOMER;
 SELECT TOP 10 * FROM tblPRODUCT;
-SELECT TOP 10 * FROM tblORDER
+SELECT TOP 20 * FROM tblORDER
 ORDER BY OrderDate DESC;
 
 DECLARE @CID INTEGER

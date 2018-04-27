@@ -2,11 +2,8 @@
 Lab 1
 INFO 445
 J. Benjamin Leeds
-Created: March 27, 2018
-Updated: March 28, 2018
-*/
-
-/*
+Created: April 10, 2018
+Updated: April 11, 2018
 
 Lab 3 Extra Credit Assignment
 
@@ -30,10 +27,9 @@ WHERE tblCOLLEGE.CollegeName = 'Arts and Sciences'
 GROUP BY tblCLASS.QuarterID
 
 
-WHERE collegename = A&S AND Class.Year BETWEEN '1958' AND '1984'
-AND 
-** 2nd query that returns 1 column (dept. id. = A&S):
-DepartmentID in 
+/*
+    2nd query that returns 1 column (dept. id. = A&S):
+*/
 
 -- 1) list of deptIDs in A&S
 -- 2) list of course in A&S joined by DeptID
@@ -47,11 +43,28 @@ WHERE tblCOURSE.DeptID IN(
     WHERE tblCOLLEGE.CollegeName = 'Arts and Sciences'  
 )
 
+/*
+
+Question 2: Determine students w/ at least 2 relationships listed as 'sibling' in addition to having
+completed at least 20 credits of 300-level chemistry after 2011
+
+*/
+
+/*
+
+Question 3: 
+
+Determine the most-common dormroom type for students who have special needs of either
+'Physical Access' or 'Preparation Accommodation' who completed a business school course 
+before 1989 with a grade between 3.4 and 3.8
+
+*/
+
+-- ############################################################################
+-- Schema
 
 SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'
 SELECT * FROM tblRELATIONSHIP
-
-SELECT * FROM tblCLASS
 
 /* Tables:
 
@@ -93,29 +106,3 @@ tblRELATIONSHIP
     RelationshipID
     RelationshipName
     RelationshipDescr
-
-
-
-
-
-
-
-
-
-  
-
-/*
-
-Question 2: Determine students w/ at least 2 relationships listed as 'sibling' in addition to having
-completed at least 20 credits of 300-level chemistry after 2011
-
-*/
-/*
-
-Question 3: 
-
-Determine the most-common dormroom type for students who have special needs of either
-'Physical Access' or 'Preparation Accommodation' who completed a business school course 
-before 1989 with a grade between 3.4 and 3.8
-
-*/
