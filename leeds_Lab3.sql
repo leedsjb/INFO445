@@ -20,7 +20,6 @@ WITH
     TO 'C:\SQL\Lab3_445_leeds.mdf',
     MOVE 'Lab3_445_log' -- move log file to specified dir
     TO 'C:\SQL\Lab3_445_leeds.ldf',
-
 RECOVERY, REPLACE, STATS
 GO
 -- STATS: provides incremental update
@@ -71,6 +70,7 @@ GO
 IF(OBJECT_ID('uspInsertOrder')) IS NOT NULL
     DROP PROCEDURE uspInsertOrder;
 GO
+
 -- inserts orders into database based on arguments
 CREATE PROCEDURE uspInsertOrder
     @Fname varchar(60),
@@ -132,70 +132,133 @@ GO
 CREATE PROCEDURE uspWrapperProcedure
     @timesToRun INTEGER
 AS
-    WHILE @timesToRun > 0 
-        BEGIN
-            EXECUTE uspInsertOrder
-                @Fname = 'Logan',
-                @Lname = 'Koitzsch',
-                @DOB = '1993-07-24',
-                @C_Zip = '31769',
-                @Product = 'Silver Stainless Steel Cold Cup',
-                @Qty = 1,
-                @OrderDate = '2018-04-26'
-            SET @timesToRun = @timesToRun - 1
-            PRINT @timesToRun
-        END
+BEGIN
 
+    DECLARE @numCustomers   INTEGER;
+    DECLARE @numProducts    INTEGER;
+    DECLARE @randCustomerID INTEGER;
+    DECLARE @randProductID  INTEGER;
+    DECLARE @Fname          VARCHAR(60);
+    DECLARE @Lname          VARCHAR(60);
+    DECLARE @DOB            DATE;
+    DECLARE @C_Zip         VARCHAR(25);
+    DECLARE @Product        VARCHAR(100);
+    DECLARE @Qty            NUMERIC
+    DECLARE @OrderDate      DATETIME;
+    SET @numCustomers = (SELECT COUNT(*) FROM tblCUSTOMER);
+    SET @numProducts = (SELECT COUNT(*) FROM tblPRODUCT);
+
+    WHILE @timesToRun > 0 
+    BEGIN
+
+        -- calculate random customerID within range of products
+        SET @numCustomers = (SELECT COUNT(*) FROM tblCUSTOMER);
+        SET @randCustomerID = (RAND() * @numCustomers);
+        
+        -- ensure randCustomerID is never 0
+        IF @randCustomerID < 1
+            SET @randCustomerID = 1;
+
+        SELECT
+            @Fname = CustomerFName, @Lname = CustomerLname,
+            @DOB = DateOfBirth, @C_Zip = CustomerZIP
+        FROM tblCUSTOMER
+        WHERE CustomerID = @randCustomerID;
+
+        -- calculate random productID within range of products
+        SET @numProducts = (SELECT COUNT(*) FROM tblPRODUCT);
+        SET @randProductID = (RAND() * @numProducts);
+        
+        -- ensure product ID is never 0
+        IF @randProductID < 1
+            SET @randProductID = 1;
+        
+        -- retrieve product name associated with rand product id
+        SET @Product = (
+            SELECT ProductName
+            FROM tblPRODUCT
+            WHERE tblPRODUCT.ProductID = @randProductID
+        );
+
+        -- generate random order quantity between 0 and 10 (inclusive)
+        SET @Qty = (RAND() * 10);
+    
+        -- generate random order datetime within the preceding 90 days
+        SET @OrderDate = DATEADD(minute, RAND() * -90*24*60, GETDATE());
+    
+        EXECUTE uspInsertOrder
+            @Fname = @Fname,
+            @Lname = @Lname,
+            @DOB = @DOB,
+            @C_Zip = @C_Zip,
+            @Product = @Product,
+            @Qty = @Qty,
+            @OrderDate = @OrderDate;
+
+        SET @timesToRun = @timesToRun - 1;
+    END;
+END;
 
 -- Backup and Restore
 
 -- Step 4: Take Full Backup
 BACKUP DATABASE Lab3_445_leeds
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
+
+-- Step 5: Call wrapper stored procedure 1000 times
+EXECUTE uspWrapperProcedure
+    @timesToRun = 1000;
+
+-- Step 6: Perform differential backup
+BACKUP DATABASE Lab3_445_leeds
 TO DISK = 'C:\SQL\Lab3_445_leeds.bak'
-  
--- *************************************************************************************************
+WITH DIFFERENTIAL;
 
--- Nested stored proc tests
-SELECT TOP 10 * FROM tblCUSTOMER;
-SELECT TOP 10 * FROM tblPRODUCT;
-SELECT TOP 20 * FROM tblORDER
-ORDER BY OrderDate DESC;
+-- Step 7: Perform transaction log backup
+BACKUP LOG Lab3_445_leeds
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
 
-DECLARE @CID INTEGER
-DECLARE @PID INTEGER
-
-EXECUTE uspGetProdID
-    @P_Name = 'Silver Stainless Steel Cold Cup',
-    @P_ID = @PID OUTPUT
-        
-EXECUTE uspGetCustID
-    @First = 'Logan',
-    @Last = 'Koitzsch', 
-    @Birth = '1993-07-24',
-    @Zip = '31769',
-    @CustID = @CID OUTPUT
-
-
-EXECUTE uspInsertOrder
-    @Fname = 'Logan',
-    @Lname = 'Koitzsch',
-    @DOB = '1993-07-24',
-    @C_Zip = '31769',
-    @Product = 'Silver Stainless Steel Cold Cup',
-    @Qty = 1,
-    @OrderDate = '2018-04-26'
-
-PRINT @CID + " " + @PID
-GO
+-- Step 8: Perform log/differential backup while running synthetics txn in-between
 
 EXECUTE uspWrapperProcedure
-    @timesToRun = 10   
+    @timesToRun = 75
+BACKUP DATABASE Lab3_445_leeds
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak'
+WITH DIFFERENTIAL;
 
--- utilities
-SELECT * FROM sys.procedures
-SELECT * FROM sys.tables
+EXECUTE uspWrapperProcedure
+    @timesToRun = 50
+BACKUP LOG Lab3_445_leeds
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
 
--- view all tables and their schema
-SELECT COLUMN_NAME, TABLE_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
-FROM INFORMATION_SCHEMA.COLUMNS
-WHERE TABLE_NAME LIKE 'tbl%'
+EXECUTE uspWrapperProcedure
+    @timesToRun = 25
+BACKUP LOG Lab3_445_leeds
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
+
+EXECUTE uspWrapperProcedure
+    @timesToRun = 100
+BACKUP DATABASE Lab3_445_leeds 
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak'
+WITH DIFFERENTIAL;
+
+EXECUTE uspWrapperProcedure
+    @timesToRun = 60
+BACKUP LOG Lab3_445_leeds
+TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
+
+GO
+
+-- Step 9: Drop Database
+USE MASTER;
+DROP DATABASE Lab3_445_leeds;
+GO
+
+-- Step 10: View Available Backups
+RESTORE HEADERONLY FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
+
+-- Step 11: Restore to point in time specified by instructor
+RESTORE Lab3_445_leeds
+FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
+WITH RECOVERY, STATS;
+GO
