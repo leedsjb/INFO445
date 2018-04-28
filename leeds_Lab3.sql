@@ -3,14 +3,14 @@ Lab 3 - Synthetic Transaction and Database Backup and Restore
 INFO 445
 J. Benjamin Leeds
 Created: April 25, 2018
-Updated: April 26, 2018
+Updated: April 27, 2018
 */
 
 USE master
 GO
 
 RESTORE FILELISTONLY
-FROM DISK = 'C:\SQL\Lab3_445_Template.bak'
+FROM DISK = 'C:\SQL\Lab3_445_Template.bak';
 
 -- Restore full database
 RESTORE DATABASE Lab3_445_leeds -- database name
@@ -20,11 +20,11 @@ WITH
     TO 'C:\SQL\Lab3_445_leeds.mdf',
     MOVE 'Lab3_445_log' -- move log file to specified dir
     TO 'C:\SQL\Lab3_445_leeds.ldf',
-RECOVERY, REPLACE, STATS
+RECOVERY, REPLACE, STATS;
 GO
 -- STATS: provides incremental update
 
-USE Lab3_445_leeds
+USE Lab3_445_leeds;
 GO
 
 IF(OBJECT_ID('uspGetCustID')) IS NOT NULL
@@ -141,7 +141,7 @@ BEGIN
     DECLARE @Fname          VARCHAR(60);
     DECLARE @Lname          VARCHAR(60);
     DECLARE @DOB            DATE;
-    DECLARE @C_Zip         VARCHAR(25);
+    DECLARE @C_Zip          VARCHAR(25);
     DECLARE @Product        VARCHAR(100);
     DECLARE @Qty            NUMERIC
     DECLARE @OrderDate      DATETIME;
@@ -154,7 +154,7 @@ BEGIN
         -- calculate random customerID within range of products
         SET @numCustomers = (SELECT COUNT(*) FROM tblCUSTOMER);
         SET @randCustomerID = (RAND() * @numCustomers);
-        
+
         -- ensure randCustomerID is never 0
         IF @randCustomerID < 1
             SET @randCustomerID = 1;
@@ -221,29 +221,29 @@ TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
 -- Step 8: Perform log/differential backup while running synthetics txn in-between
 
 EXECUTE uspWrapperProcedure
-    @timesToRun = 75
+    @timesToRun = 75;
 BACKUP DATABASE Lab3_445_leeds
 TO DISK = 'C:\SQL\Lab3_445_leeds.bak'
 WITH DIFFERENTIAL;
 
 EXECUTE uspWrapperProcedure
-    @timesToRun = 50
+    @timesToRun = 50;
 BACKUP LOG Lab3_445_leeds
 TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
 
 EXECUTE uspWrapperProcedure
-    @timesToRun = 25
+    @timesToRun = 25;
 BACKUP LOG Lab3_445_leeds
 TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
 
 EXECUTE uspWrapperProcedure
-    @timesToRun = 100
+    @timesToRun = 100;
 BACKUP DATABASE Lab3_445_leeds 
 TO DISK = 'C:\SQL\Lab3_445_leeds.bak'
 WITH DIFFERENTIAL;
 
 EXECUTE uspWrapperProcedure
-    @timesToRun = 60
+    @timesToRun = 60;
 BACKUP LOG Lab3_445_leeds
 TO DISK = 'C:\SQL\Lab3_445_leeds.bak';
 
@@ -254,11 +254,44 @@ USE MASTER;
 DROP DATABASE Lab3_445_leeds;
 GO
 
--- Step 10: View Available Backups
-RESTORE HEADERONLY FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
+-- Step 10: View Available Backups and Restore Full Database
+RESTORE HEADERONLY FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'; -- show available backups
+RESTORE FILELISTONLY FROM DISK = 'C:\SQL\Lab3_445_leeds.bak';
+
+-- Restore from last full backup
+RESTORE DATABASE Lab3_445_leeds_restored
+FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
+WITH
+    MOVE 'Lab3_445' TO 'C:\SQL\Lab3_445_leeds_restored_data.mdf',
+    MOVE 'Lab3_445_log' TO 'C:\SQL\Lab3_445_leeds_restored_log.mdf',
+    FILE = 3, -- last full backup in HEADERONLY query
+    NORECOVERY, REPLACE, STATS;
+
+-- Restore from last differential back
+RESTORE DATABASE Lab3_445_leeds_restored
+FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
+WITH
+    FILE = 8, -- most recent differential backup in HEADERONLY query
+    NORECOVERY;
+
+-- Restore sequential transaction log backups following most recent differential backup
+RESTORE DATABASE Lab3_445_leeds_restored
+FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
+WITH
+    FILE = 9, -- only transaction log backup between last differential and current state
+    RECOVERY;
+    
+-- Select recently restored database
+USE Lab3_445_leeds_restored;
+GO
+
+-- Verify most recent orders were restored
+SELECT TOP(10) * FROM tblORDER
+ORDER BY OrderDate DESC;
 
 -- Step 11: Restore to point in time specified by instructor
-RESTORE Lab3_445_leeds
-FROM DISK = 'C:\SQL\Lab3_445_leeds.bak'
-WITH RECOVERY, STATS;
-GO
+
+/* 
+    Steps: repeat steps above but instead restore to most recent differential backup and then 
+    restore sequential transaction log backups up until the desired recovery point
+*/
