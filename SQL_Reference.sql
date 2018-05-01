@@ -9,6 +9,11 @@ Note: Unless otherwise specified these SQL queries are for T-SQL
 
 */
 
+-- view all databases
+SELECT name, database_id, create_date  
+FROM sys.databases
+ORDER BY name DESC;
+
 -- select database to use BEFORE running queries below
 USE Lab3_445_leeds
 
